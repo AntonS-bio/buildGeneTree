@@ -1,16 +1,16 @@
 import subprocess
 from Bio.Seq import Seq
-from os import getcwd
+from os.path import split
 
 sequences={} #key=sample_counterForBlastMatch, value=sequence
 def main(inputArgs):
-    file, fastaDir, minLength, maxLength, minIdentity=inputArgs
+    file, minLength, maxLength, minIdentity, wd, proteinSearch=inputArgs
     inSampleGeneCounter=1
     #quickblast: reference, query, prints query
-    sequence=subprocess.run("blastn -query "+fastaDir+file+" -task 'megablast' \
-            -max_target_seqs 1000000000 -db "+getcwd()+"/tempBlastDB/temp \
-            -num_threads 8 -evalue 1.0E-5 -word_size 20 \
-            -outfmt \"6 delim=  qseqid qstart qend sseqid sstart send pident evalue qseq\""
+    sequence=subprocess.run(f'blastn -query {file} -task \'megablast\' \
+            -max_target_seqs 1000000000 -db {wd}/tempBlastDB/temp \
+            -num_threads 1 -evalue 1.0E-5 -word_size 20 \
+            -outfmt \"6 delim=  qseqid qstart qend sseqid sstart send pident evalue qseq\"'
             , shell=True, executable="/bin/bash", stdout=subprocess.PIPE)
     blastHits=sequence.stdout.decode().split("\n")
     for blasthit in blastHits:
@@ -24,11 +24,12 @@ def main(inputArgs):
                 suffix=""
             else:
                 suffix="_"+str(inSampleGeneCounter)
+            header=split(file)[1].replace(".fasta","").replace(".fna","")
             if int(blasthit[4])>int(blasthit[5]): #4 and 5 are query coordinates
                 #get reverse complement
                 temp_sequence = Seq(blasthit[-1].strip())
-                sequences[file.replace(".fasta","")+suffix]=str(temp_sequence.reverse_complement())
+                sequences[header+suffix]=str(temp_sequence.reverse_complement())
             else:
-                sequences[file.replace(".fasta","")+suffix]=blasthit[-1].strip()
+                sequences[header+suffix]=blasthit[-1].strip()
             inSampleGeneCounter+=1
     return sequences
