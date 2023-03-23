@@ -1,5 +1,5 @@
 #take all fastas in specified directory and check all for specific gene
-from os import listdir, makedirs, chdir,  walk
+from os import listdir, mkdir, chdir,  walk
 from os.path import isfile, join, splitext, exists, split
 import shutil
 import subprocess
@@ -34,6 +34,9 @@ if not exists(args.fasta_dir):
     print(f'The fasta directory {args.fasta_dir} does not exits')
     sys.exit()
 
+if not exists(args.output_dir):
+    mkdir(args.output_dir)
+
 files=[]
 if args.use_sub_dirs:
     for path, subdirs, dir_files in walk(fasta_dir):
@@ -54,8 +57,8 @@ if "file_to_search" in args and len(args.file_to_search)>0: #remove from files t
     if len(files)==0:
         print(f'No files from file_to_search are present in fasta directory {args.fasta_dir}')
         sys.exit()
-min_identity=args.min_identity/100
-max_length_difference=args.max_length_diff/100
+min_identity=int(args.min_identity)#/100
+max_length_difference=int(args.max_length_diff)#/100
 
 proteinSearch=False
 
@@ -68,7 +71,7 @@ chdir(wd)
 if exists("./tempBlastDB/"):
     shutil.rmtree("./tempBlastDB/")
 
-makedirs("./tempBlastDB/")
+mkdir("./tempBlastDB/")
 subprocess.call(f'makeblastdb -in {ref_fasta} -title temp -out {wd}/tempBlastDB/temp -dbtype nucl \
       -blastdb_version 4 1>/dev/null', shell=True)
 
