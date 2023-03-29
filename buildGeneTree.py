@@ -13,18 +13,24 @@ import argparse
 parser = argparse.ArgumentParser(description='Take nucleotide/amino acid sequence, search files for homologues, build a phylo tree')
 parser.add_argument('-r','--ref_sequence', help="Nucleotide/amino acid sequence homologues of which will be used to build a tree", required=True)
 parser.add_argument('-d', '--fasta_dir', help="Location of fasta files to search for homologues", required=True)
-parser.add_argument('-s', '--use_sub_dirs', default=False, help="Look for fasta files in subdirectories of the fasta directory", required=False)
-parser.add_argument('-f', '--file_to_search', default=[], help="By default, all .fna and .fasta file in fasta_dir are search, but a subset can be specified by giving a plain text file", required=False)
-parser.add_argument('-l', '--max_length_diff', default=10, help="Maximum difference in length between supplied gene/protein sequence and a BLASTn hit. Default is 10 (i.e +/-10%)", required=False)
-parser.add_argument('-i', '--min_identity', default=70, help="Minimum BLASTn identity between supplied gene/protein sequence and a BLASTn hit. Default is 70 i.e. 70%", required=False)
-parser.add_argument('-n', '--nucleotide_search', default=True, help="Not currently supported. Reference and targets are nucleotide (True) or proteins (False)", required=False)
 parser.add_argument('-o', '--output_dir', default=True, help="Directory in which output will be stored", required=True)
-parser.add_argument('-t', '--cpu_threads', default=min(mp.cpu_count(),20), help="Number of CPUs to use for BLASTn search, default is lower of machine total and 20", required=False)
+parser.add_argument('-s', '--use_sub_dirs', default=False, help="Look for fasta files in subdirectories of the fasta directory", required=False, action='store_true')
+parser.add_argument('-f', '--file_to_search', default=[], help="By default, all .fna and .fasta file in fasta_dir are search, but a subset can be specified by giving a plain text file", required=False)
+parser.add_argument('-l', '--max_length_diff', default=10, help="Maximum difference in length between supplied gene/protein sequence and a BLASTn hit. Default is 10 (i.e +/-10%%)", required=False)
+parser.add_argument('-i', '--min_identity', default=70, help="Minimum BLASTn identity between supplied gene/protein sequence and a BLASTn hit. Default is 70 i.e. 70%%", required=False)
+parser.add_argument('-n', '--nucleotide_search', default=True, help="Not currently supported. Reference and targets are nucleotide [True] or proteins [False]", required=False)
+parser.add_argument('-c', '--cpu_threads', default=min(mp.cpu_count(),20), help="Number of CPUs to use for BLASTn search, default is lower of machine total and 20", required=False)
+parser.add_argument('-t', '--build_tree', default=False, help="Build the tree based on the identified sequences", required=False, action='store_true')
 
-args = parser.parse_args()
-# if isfile(join(getcwd(), args.ref_sequence)):
-#     ref_fasta=getcwd()+"/"+args.ref_sequence
-# else:
+try:
+    args = parser.parse_args()
+    if args.help:
+        parser.print_help()
+        sys.exit(0)
+except:
+    parser.print_help()
+    sys.exit(0)
+
 ref_fasta=args.ref_sequence
 fasta_dir=args.fasta_dir
 wd=args.output_dir
@@ -58,7 +64,7 @@ if "file_to_search" in args and len(args.file_to_search)>0: #remove from files t
         print(f'No files from file_to_search are present in fasta directory {args.fasta_dir}')
         sys.exit()
 min_identity=int(args.min_identity)#/100
-max_length_difference=int(args.max_length_diff)#/100
+max_length_difference=int(args.max_length_diff)/100
 
 proteinSearch=False
 
@@ -100,13 +106,6 @@ for file in results:
         sequences[sequence]=file[sequence]
 print("Completed collecting gene sequences")
 
-#output hits
-# if exists(wd+"/treetemp/"):
-#     shutil.rmtree(wd+"/treetemp/")
-# if not exists(wd+"/treetemp/"):
-#     makedirs(wd+"/treetemp/")
-# chdir(wd+"/treetemp/") 
-# outputFile=wd+"unaligned.fasta"
 with open("unaligned.fasta", "w") as output:
     for sequence in sequences:
         output.write(">"+sequence+"\n")
@@ -120,7 +119,7 @@ else:
     subprocess.call(f'mafft --auto unaligned.fasta > {tail.replace(".fasta","")}_aligned.fasta', shell=True)
 print("Finished aligning")
 
-print("Building tree")
-subprocess.call("iqtree -nt AUTO -pre treetemp -s aligned.fasta -bb 100", shell=True)
-#subprocess.call("iqtree -nt AUTO -m GTR+F+I+G4 -pre "+tail.replace(".fasta","")+" -s "+tail.replace(".fasta","")+"_aligned.fasta -bb 1000", shell=True)
-print("Done")
+if args.use_sub_dirs:
+    print("Building tree")
+    subprocess.call("iqtree -nt AUTO -m GTR+F+I+G4 -pre "+tail.replace(".fasta","")+" -s "+tail.replace(".fasta","")+"_aligned.fasta -bb 1000", shell=True)
+    print("Done")
