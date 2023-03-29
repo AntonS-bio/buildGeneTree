@@ -24,9 +24,6 @@ parser.add_argument('-t', '--build_tree', default=False, help="Build the tree ba
 
 try:
     args = parser.parse_args()
-    if args.help:
-        parser.print_help()
-        sys.exit(0)
 except:
     parser.print_help()
     sys.exit(0)
@@ -119,7 +116,7 @@ else:
     subprocess.call(f'mafft --auto unaligned.fasta > {tail.replace(".fasta","")}_aligned.fasta', shell=True)
 print("Finished aligning")
 
-if args.use_sub_dirs:
+if args.build_tree:
     print("Building tree")
     subprocess.call("iqtree -nt AUTO -m GTR+F+I+G4 -pre "+tail.replace(".fasta","")+" -s "+tail.replace(".fasta","")+"_aligned.fasta -bb 1000", shell=True)
     print("Done")
